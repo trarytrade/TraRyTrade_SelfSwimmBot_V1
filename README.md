@@ -34,6 +34,18 @@ api_key_binance    = "YOUR_BINANCE_API_KEY"
 api_secret_binance = "YOUR_BINANCE_API_SECRET"
 
 
+
+# varmove.py
+Set here Coin You wana trade and TradeX  // exp 400 x 24  for both site sellrun or buyrun....
+
+exp varmove.py
+#!/usr/bin/env python
+# Auto-generated config
+Coin = "LUMIAUSDT"
+TradeAmount = 24
+TradeX = 50      # 400+ may 2000+ or more is better at last but much risk on binance very expensive 
+
+
 4. Run the Bot
 
 python3 TraRyTrade_SelfSwimm_V1.py
