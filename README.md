@@ -28,13 +28,13 @@ pip install \
 
 
 3. Configure your API Keys
-Create a file named config.py next to the main script:
+Set in config.py your binance keys. 
 
 # config.py
 api_key_binance    = "YOUR_BINANCE_API_KEY"
 api_secret_binance = "YOUR_BINANCE_API_SECRET"
 
-
+Set in varmove.py Symbol and TradeAmount and * TradeX 
 # varmove.py
 Set here Coin You wana trade and TradeX  // exp 400 x 24  for both site sellrun or buyrun....
 
