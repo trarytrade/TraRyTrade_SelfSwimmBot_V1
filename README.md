@@ -24,7 +24,11 @@ pip install \
   websockets \
   python-binance
 
+May some more libs needed, base on your system. 
+Go through the message you receive when you try to start the bot. 
+You may need to search on Google for any missing libraries and install them using pip install until you can successfully run the bot. 
 
+I apologize; I will add a more precise list later. However, for normal Python users, figuring out the missing libraries shouldn't be a problem.
 
 
 3. Configure your API Keys
