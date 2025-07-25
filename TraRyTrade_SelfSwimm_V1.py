@@ -38,7 +38,7 @@ Features:
 
 
 
-import aiohttp, asyncio, json, time, traceback, os, sys, math, datetime, importlib, random, subprocess, signal, tempfile
+import aiohttp, asyncio, json, time, traceback, os, sys, math, datetime, importlib, random, signal, tempfile
 from collections import deque
 from decimal import Decimal
 from typing import List, Optional, Deque, Dict, Tuple
@@ -485,33 +485,18 @@ class TradingBotAsyncManager:
             self.session = None
 
     def fire_and_forget_order(self, url: str, headers: dict, body: dict):
-        """
-        Fire an HTTP POST in a subprocess to avoid blocking the main event loop.
-        """
-        asyncio.create_task(self._launch_in_subprocess(url, headers, body))
+        """Fire an HTTP POST asynchronously using this manager's aiohttp session."""
+        asyncio.create_task(self._send_order(url, headers, body))
 
-    async def _launch_in_subprocess(self, url: str, headers: dict, body: dict):
+    async def _send_order(self, url: str, headers: dict, body: dict):
+        """Send the HTTP POST without blocking the caller."""
+        await self.init_session()
         try:
-            body_str = json.dumps(body)
-            command = [
-                'python3', '-c', f"""
-import json, aiohttp, asyncio
-
-async def post_request(url, headers, body):
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(url, headers=headers, data=body) as resp:
+            async with self.session.post(url, headers=headers, json=body) as resp:
                 response_text = await resp.text()
-                print(f"Order status={{resp.status}}, response={{response_text}}")
+                print(f"Order status={resp.status}, response={response_text}")
         except Exception as e:
-            print(f"Error sending order: {{e}}")
-
-asyncio.run(post_request('{url}', {json.dumps(headers)}, '{body_str}'))
-"""
-            ]
-            subprocess.Popen(command)
-        except Exception as e:
-            print(f"[TradingBot] Subprocess launch error: {e}")
+            print(f"[TradingBot] Async order error: {e}")
 
 
 
@@ -2375,6 +2360,9 @@ class TraRyMainSuperRefined:
 
     async def run(self):
         try:
+            # Ensure aiohttp session is ready
+            await self.bot.async_manager.init_session()
+
             await asyncio.gather(
                 trade_stream(self.bot),
                 liquidation_stream(self.bot),
@@ -2388,6 +2376,7 @@ class TraRyMainSuperRefined:
             self.bot.save_state()
             self.logger.flush(force=True)
             self.bot.hist_mgr._persist()
+            await self.bot.async_manager.close_session()
 
 async def main():
     app = TraRyMainSuperRefined()
