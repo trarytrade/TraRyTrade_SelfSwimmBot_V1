@@ -3,33 +3,38 @@
 TraRyTrade_SelfSwimm_V1__PublicOpenSourceRelease_SuperRefined_MultiLot_Async - Single Unified Script with Extended ML Actions  
 
 
-set the config.py you API Stuff 
-start with python3 TraRyTrade_SelfSwimm_V1.py  (may there lot of missing libs )
+Set the **BINANCE_API_KEY** and **BINANCE_API_SECRET** environment variables before running.
+Start with `python3 TraRyTrade_SelfSwimm_V1.py`  (may there lot of missing libs)
 
 
 ## 1. Quick Setup
 
 1. **Clone or copy** this repo into a folder.
- 
+
 2. **Create a Python virtual environment** (recommended):
 python3 -m venv .venv
 source .venv/bin/activate    # on Windows: .venv\Scripts\activate
 pip install --upgrade pip
 pip install -r requirements.txt  # installs aiohttp, numpy, pandas, joblib, scikit-learn, websockets, python-binance, requests
+=======
 
-May some more libs needed, base on your system. 
-Go through the message you receive when you try to start the bot. 
-You may need to search on Google for any missing libraries and install them using pip install until you can successfully run the bot. 
+3. **Install dependencies**
+pip install -r requirements.txt
 
-I apologize; I will add a more precise list later. However, for normal Python users, figuring out the missing libraries shouldn't be a problem.
+All third party packages required by the bot are listed in `requirements.txt`. This makes it simple to set up the environment without having to guess the missing libraries.
 
 
 3. Configure your API Keys
+Set environment variables **BINANCE_API_KEY** and **BINANCE_API_SECRET** before running.
+`config.py` will read them automatically.
+=======
+4. Configure your API Keys
 Set in config.py your binance keys. 
 
-# config.py
-api_key_binance    = "YOUR_BINANCE_API_KEY"
-api_secret_binance = "YOUR_BINANCE_API_SECRET"
+```bash
+export BINANCE_API_KEY="YOUR_BINANCE_API_KEY"
+export BINANCE_API_SECRET="YOUR_BINANCE_API_SECRET"
+```
 
 Set in varmove.py Symbol and TradeAmount and * TradeX 
 # varmove.py
@@ -66,6 +71,10 @@ This update introduces additional stability utilities and features:
 - New `connect_with_backoff` helper centralizes WebSocket reconnection logic.
 - Liquidation events are buffered in `liq_events` with helper methods to query
   recent events.
+## License
+=======
+- `TradingBotAsyncManager.fetch_json` simplifies stable REST calls with
+  automatic retry and backoff.
 
-
+This project is released under the [MIT License](LICENSE).
 
