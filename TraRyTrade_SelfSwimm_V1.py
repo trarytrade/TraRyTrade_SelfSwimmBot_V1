@@ -712,6 +712,25 @@ class PositionManager:
         return ((mark_price - self.avg_entry_price) / self.avg_entry_price) if self.is_long() \
                else ((self.avg_entry_price - mark_price) / self.avg_entry_price)
 
+    def get_position_value(self, price: Optional[float] = None) -> float:
+        """Return the absolute position value at the given price (or current entry price)."""
+        if price is None:
+            price = self.avg_entry_price
+        return abs(self.position_units) * price * self.trade_unit_size
+
+    def reset(self):
+        """Reset all position information back to the initial neutral state."""
+        self.position_units       = 0.0
+        self.avg_entry_price      = 0.0
+        self.realized_pnl         = 0.0
+        self.open_fee_accum       = 0.0
+        self.buy_run_pnl          = 0.0
+        self.sell_run_pnl         = 0.0
+        self.bars_in_position     = 0
+        self.stop_moved_to_breakeven = False
+        self.stop_loss            = 0.0
+        self.side                 = "FLAT"
+
     # ── Persistence ──
     def to_dict(self) -> dict:
         return {
@@ -1023,6 +1042,13 @@ class SuperRefinedML:
         
         df_live["pos_units"] = self.posmgr.position_units
         self.logger.log(f"[DEBUG] pos_units (live): {self.posmgr.position_units}")
+
+        df_live["pos_abs_units"] = abs(self.posmgr.position_units)
+        df_live["pos_value"] = self.posmgr.get_position_value(df_live["price"].iloc[-1])
+        df_live["exposure_pct"] = abs(self.posmgr.position_units) / MAX_POSITION_UNITS_ABS
+        self.logger.log(f"[DEBUG] pos_abs_units (live): {abs(self.posmgr.position_units)}")
+        self.logger.log(f"[DEBUG] pos_value (live): {self.posmgr.get_position_value(df_live['price'].iloc[-1])}")
+        self.logger.log(f"[DEBUG] exposure_pct (live): {abs(self.posmgr.position_units) / MAX_POSITION_UNITS_ABS}")
         
         df_live["pos_unrealized_pct"] = self.posmgr.get_unrealized_pct(df_live["price"].iloc[-1])  # last price
         self.logger.log(f"[DEBUG] pos_unrealized_pct (live): {self.posmgr.get_unrealized_pct(df_live['price'].iloc[-1])}")
@@ -1164,6 +1190,7 @@ class SuperRefinedML:
             "price", "pchg", "avg_pchg_10", "std_pchg_10", "vol_10",
             "wave_score", "wave_score_lag1", "wave_score_lag2",
             "vol_regime", "bars_in_position", "pos_units", "pos_unrealized_pct",
+            "pos_abs_units", "pos_value", "exposure_pct",
             "pos_realized_pnl", "stop_loss", "time_of_day", "day_of_week",
             "time_since_last_trade", "max_position_units_current", "rsi",
             "vol_avg_10", "stop_loss_dist_pct", "target_dist_pct", "risk_reward",
