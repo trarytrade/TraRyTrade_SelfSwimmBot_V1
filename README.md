@@ -3,8 +3,8 @@
 TraRyTrade_SelfSwimm_V1__PublicOpenSourceRelease_SuperRefined_MultiLot_Async - Single Unified Script with Extended ML Actions  
 
 
-set the config.py you API Stuff 
-start with python3 TraRyTrade_SelfSwimm_V1.py  (may there lot of missing libs )
+Set the **BINANCE_API_KEY** and **BINANCE_API_SECRET** environment variables before running.
+Start with `python3 TraRyTrade_SelfSwimm_V1.py`  (may there lot of missing libs)
 
 
 ## 1. Quick Setup
@@ -22,12 +22,17 @@ pip install -r requirements.txt
 All third party packages required by the bot are listed in `requirements.txt`. This makes it simple to set up the environment without having to guess the missing libraries.
 
 
+3. Configure your API Keys
+Set environment variables **BINANCE_API_KEY** and **BINANCE_API_SECRET** before running.
+`config.py` will read them automatically.
+=======
 4. Configure your API Keys
 Set in config.py your binance keys. 
 
-# config.py
-api_key_binance    = "YOUR_BINANCE_API_KEY"
-api_secret_binance = "YOUR_BINANCE_API_SECRET"
+```bash
+export BINANCE_API_KEY="YOUR_BINANCE_API_KEY"
+export BINANCE_API_SECRET="YOUR_BINANCE_API_SECRET"
+```
 
 Set in varmove.py Symbol and TradeAmount and * TradeX 
 # varmove.py
