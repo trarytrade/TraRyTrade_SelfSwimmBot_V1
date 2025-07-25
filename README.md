@@ -15,14 +15,7 @@ start with python3 TraRyTrade_SelfSwimm_V1.py  (may there lot of missing libs )
 python3 -m venv .venv
 source .venv/bin/activate    # on Windows: .venv\Scripts\activate
 pip install --upgrade pip
-pip install \
-  aiohttp \
-  numpy \
-  pandas \
-  joblib \
-  scikit-learn \
-  websockets \
-  python-binance
+pip install -r requirements.txt  # installs aiohttp, numpy, pandas, joblib, scikit-learn, websockets, python-binance, requests
 
 May some more libs needed, base on your system. 
 Go through the message you receive when you try to start the bot. 
