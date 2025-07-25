@@ -1349,15 +1349,33 @@ class SuperRefinedML:
 ###############################################################################
 import traceback
 
-async def trade_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
-    """Consume the Binance trade stream with exponential backoff reconnects."""
-    url = f"wss://fstream.binance.com/ws/{varmove.Coin.lower()}@trade"
+
+async def connect_with_backoff(url: str, logger: "Logger", *, ping_interval=3,
+                               ping_timeout=7, max_backoff: float = 30.0):
+    """Connect to a WebSocket URL with automatic exponential backoff."""
     backoff = 0.1
     while True:
         try:
-            async with websockets.connect(url, ping_interval=3, ping_timeout=7) as ws:
+            ws = await websockets.connect(
+                url, ping_interval=ping_interval, ping_timeout=ping_timeout
+            )
+            logger.log(f"[connect_with_backoff] Connected to {url}")
+            return ws
+        except Exception as e:
+            logger.log(
+                f"[connect_with_backoff] {e}. Reconnecting in {backoff:.1f}s."
+            )
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, max_backoff)
+
+async def trade_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
+    """Consume the Binance trade stream with exponential backoff reconnects."""
+    url = f"wss://fstream.binance.com/ws/{varmove.Coin.lower()}@trade"
+    while True:
+        try:
+            ws = await connect_with_backoff(url, main_bot.logger)
+            async with ws:
                 main_bot.logger.log(f"[trade_stream] Connected to {SYMBOL} trade stream.")
-                backoff = 0.1
                 while True:
                     msg = await ws.recv()
                     data = json.loads(msg)
@@ -1370,11 +1388,7 @@ async def trade_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
                                 traceback.format_exc()
                             )
         except Exception as e:
-            main_bot.logger.log(
-                f"[trade_stream] Connection error: {e}. Reconnecting in {backoff:.1f}s."
-            )
-            await asyncio.sleep(backoff)
-            backoff = min(backoff * 2, 30.0)
+            main_bot.logger.log(f"[trade_stream] Error: {e}")
 
 
 
@@ -1385,12 +1399,11 @@ async def trade_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
 async def liquidation_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
     """Listen for forced liquidations with exponential backoff reconnects."""
     url = f"wss://fstream.binance.com/ws/{varmove.Coin.lower()}@forceOrder"
-    backoff = 0.1
     while True:
         try:
-            async with websockets.connect(url, ping_interval=3, ping_timeout=7) as ws:
+            ws = await connect_with_backoff(url, main_bot.logger)
+            async with ws:
                 main_bot.logger.log(f"[liquidation_stream] Connected to {SYMBOL} liquidation stream.")
-                backoff = 0.1
                 while True:
                     msg = await ws.recv()
                     data = json.loads(msg)
@@ -1400,17 +1413,13 @@ async def liquidation_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
                         q = float(o.get("z", 0))
                         tms = float(o["T"]) / 1000.0
                         trade = {
-                            "timestamp": tms, "price": px, "qty": q,
-                            "wave_score": 0.0, "liq_events": 1,
-                            "e": "trade", "s": SYMBOL, "T": int(tms * 1000)
+                            "timestamp": tms,
+                            "price": px,
+                            "qty": q,
                         }
-                        main_bot.on_new_trade(trade)
+                        main_bot.on_new_liq(trade)
         except Exception as e:
-            main_bot.logger.log(
-                f"[liquidation_stream] Error: {e}. Reconnecting in {backoff:.1f}s."
-            )
-            await asyncio.sleep(backoff)
-            backoff = min(backoff * 2, 30.0)
+            main_bot.logger.log(f"[liquidation_stream] Error: {e}")
 
 ###############################################################################
 # REGISTRY SYNC
@@ -1518,6 +1527,7 @@ class TraRyTrade_SelfSwimm_V1_SuperRefined:
         self.agg_interval = self.fast_agg_interval
         self.current_bucket = None          # start time of current bucket
         self.trade_agg_buffer = []            # List[Tuple[price, qty]]
+        self.liq_events: Deque[dict] = deque(maxlen=500)
 
         # ── Load any prior state ──
         self.load_state()
@@ -1797,6 +1807,37 @@ class TraRyTrade_SelfSwimm_V1_SuperRefined:
             self.logger.log(f"[HealthCheck] Binance ping failed: {e}")
             return False
 
+    def on_new_liq(self, data: dict):
+        """Handle liquidation events separately from normal trades."""
+        try:
+            px = float(data.get("price", 0))
+            qty = float(data.get("qty", 0))
+            tms = float(data.get("timestamp", 0)) / 1000.0
+        except Exception as e:
+            self.logger.log(f"[on_new_liq] bad data: {e}")
+            return
+
+        trade = {
+            "price": px,
+            "qty": qty,
+            "timestamp": tms,
+            "wave_score": 0.0,
+            "liq_events": 1,
+        }
+        self.logger.log(
+            f"[on_new_liq] price={px} qty={qty} time={tms:.3f}"
+        )
+        self.liq_events.append(trade)
+
+    def get_recent_liq_events(self, window_sec: float = 60.0) -> List[dict]:
+        """Return liquidation events in the last `window_sec` seconds."""
+        cutoff = time.time() - window_sec
+        return [e for e in self.liq_events if e["timestamp"] >= cutoff]
+
+    def count_recent_liq_events(self, window_sec: float = 60.0) -> int:
+        """Return the number of recent liquidation events."""
+        return len(self.get_recent_liq_events(window_sec))
+
 
 
 
@@ -1991,6 +2032,7 @@ class TraRyTrade_SelfSwimm_V1_SuperRefined:
                 "wave_score_lag1": float(last["wave_score_lag1"]),
                 "wave_score_lag2": float(last["wave_score_lag2"]),
                 "vol_regime": int(last["vol_regime"]),
+                "recent_liq_count": self.count_recent_liq_events(60.0),
                 "bars_in_position": int(self.posmgr.bars_in_position),
                 "pos_units": float(self.posmgr.position_units),
                 "pos_unrealized_pct": float(self.posmgr.get_unrealized_pct(px)),
