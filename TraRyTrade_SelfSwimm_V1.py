@@ -104,7 +104,6 @@ TRADE_DATA_LOG            = "trade_data.log"   # shared trade log file for IPC
 
 LOG_POSITION_SYNC         = "POSSync.log"
 ML_DECISION_LOG           = "MLDecision.log"
-BTS_POS_FILE              = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'BTSposLive.json')
 
 # Extended ML actions
 ACTIONS = [
@@ -269,10 +268,6 @@ def check_api_error():
 import sqlite3
 import os
 from typing import List, Dict
-# Construct the DB path dynamically
-_current_dir = os.path.dirname(os.path.abspath(__file__))
-_project_root = os.path.abspath(os.path.join(_current_dir, os.pardir, os.pardir))
-DB_PATH = os.path.join(_project_root, "instance", "users.db")
 
 
 
