@@ -1,3 +1,13 @@
+"""Configuration for TraRyTrade SelfSwimmBot.
+
+API keys can be provided either by editing this file or via environment
+variables `BINANCE_API_KEY` and `BINANCE_API_SECRET` for convenience.
+"""
+
+import os
+
+# Fallback values are kept for backwards compatibility
+=======
 """Basic configuration for Binance credentials.
 
 The API key and secret can be supplied through environment variables
