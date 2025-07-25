@@ -484,6 +484,21 @@ class TradingBotAsyncManager:
             await self.session.close()
             self.session = None
 
+    async def fetch_json(self, url: str, *, params=None, retries: int = 3, timeout: int = 10):
+        """Fetch JSON data with automatic retries and exponential backoff."""
+        await self.init_session()
+        delay = 1
+        for attempt in range(retries):
+            try:
+                async with self.session.get(url, params=params, timeout=timeout) as resp:
+                    resp.raise_for_status()
+                    return await resp.json()
+            except Exception as e:
+                if attempt == retries - 1:
+                    raise
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, 30)
+
     def fire_and_forget_order(self, url: str, headers: dict, body: dict):
         """
         Fire an HTTP POST in a subprocess to avoid blocking the main event loop.
