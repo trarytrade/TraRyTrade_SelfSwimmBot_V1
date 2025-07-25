@@ -6,8 +6,10 @@ the default placeholder values are used so the rest of the application can
 still load without errors.
 """
 
+
+
 import os
 
-api_key_binance = os.environ.get("BINANCE_API_KEY", "your api_key_binance")
-api_secret_binance = os.environ.get("BINANCE_API_SECRET", "your_api_secret_binance")
+api_key_binance = os.getenv("BINANCE_API_KEY", "your api_key_binance")
+api_secret_binance = os.getenv("BINANCE_API_SECRET", "your_api_secret_binance")
 
