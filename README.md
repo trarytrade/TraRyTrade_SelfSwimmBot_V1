@@ -30,5 +30,90 @@ A single-file trading bot with extended machine learning features. The project i
 - `safe_sleep()` helper for graceful shutdowns.
 - Environment variable support for API keys.
 - Example `requirements.txt` for easy installation.
+=======
+# TraRyTrade_SelfSwimmBot_V1
+
+TraRyTrade_SelfSwimm_V1__PublicOpenSourceRelease_SuperRefined_MultiLot_Async - Single Unified Script with Extended ML Actions  
+
+
+Set the **BINANCE_API_KEY** and **BINANCE_API_SECRET** environment variables before running.
+Start with `python3 TraRyTrade_SelfSwimm_V1.py`  (may there lot of missing libs)
+
+
+## 1. Quick Setup
+
+1. **Clone or copy** this repo into a folder.
+
+2. **Create a Python virtual environment** (recommended):
+python3 -m venv .venv
+source .venv/bin/activate    # on Windows: .venv\Scripts\activate
+pip install --upgrade pip
+pip install -r requirements.txt  # installs aiohttp, numpy, pandas, joblib, scikit-learn, websockets, python-binance, requests
+=======
+
+3. **Install dependencies**
+pip install -r requirements.txt
+
+All third party packages required by the bot are listed in `requirements.txt`. This makes it simple to set up the environment without having to guess the missing libraries.
+
+
+3. Configure your API Keys
+Set environment variables **BINANCE_API_KEY** and **BINANCE_API_SECRET** before running.
+`config.py` will read them automatically.
+=======
+4. Configure your API Keys
+Set in config.py your binance keys. 
+
+```bash
+export BINANCE_API_KEY="YOUR_BINANCE_API_KEY"
+export BINANCE_API_SECRET="YOUR_BINANCE_API_SECRET"
+```
+
+Set in varmove.py Symbol and TradeAmount and * TradeX 
+# varmove.py
+Set here Coin You wana trade and TradeX  // exp 400 x 24  for both site sellrun or buyrun....
+
+exp: varmove.py
+Coin = "LUMIAUSDT"
+TradeAmount = 24
+TradeX = 50      # 400+ may 2000+ or more is better at last but much risk on binance very expensive 
+
+
+4. Run the Bot
+python3 TraRyTrade_SelfSwimm_V1.py
+
+
+⚠️ ATTENTION
+
+You may need to tweak setVars (e.g. symbol, lot sizes, thresholds) for your market and risk profile.
+Out of the box it may not be profitable—use at your own risk! And in beagnn when model fresh empty it is much bader as later....
+
+## What's New
+
+This update introduces additional stability utilities and features:
+
+- **PositionManager** now exposes a `get_position_value()` helper and a `reset()`
+  method to quickly clear all state.
+- The machine learning model now includes live position metrics such as
+  `pos_abs_units`, `pos_value`, and `exposure_pct` for improved decision making.
+- WebSocket reconnections now use **exponential backoff** for better resilience.
+- A periodic **Binance health check** keeps the connection alive and logs
+  issues early.
+- Separate `on_new_liq` handler keeps liquidation data isolated from normal
+  trades for cleaner processing.
+- New `connect_with_backoff` helper centralizes WebSocket reconnection logic.
+- Liquidation events are buffered in `liq_events` with helper methods to query
+  recent events.
+## License
+=======
+- `TradingBotAsyncManager.fetch_json` simplifies stable REST calls with
+  automatic retry and backoff.
+
+This project is released under the [MIT License](LICENSE).
+
+
+## License
+
+This project is licensed under the terms of the [MIT License](LICENSE).
 
 Use at your own risk. Tweak variables and strategy parameters to suit your needs.

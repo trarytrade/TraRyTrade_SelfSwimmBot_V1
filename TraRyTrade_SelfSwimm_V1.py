@@ -38,7 +38,7 @@ Features:
 
 
 
-import aiohttp, asyncio, json, time, traceback, os, sys, math, datetime, importlib, random, subprocess, signal, tempfile
+import aiohttp, asyncio, json, time, traceback, os, sys, math, datetime, importlib, random, signal, tempfile
 from collections import deque
 from decimal import Decimal
 from typing import List, Optional, Deque, Dict, Tuple
@@ -104,7 +104,6 @@ TRADE_DATA_LOG            = "trade_data.log"   # shared trade log file for IPC
 
 LOG_POSITION_SYNC         = "POSSync.log"
 ML_DECISION_LOG           = "MLDecision.log"
-BTS_POS_FILE              = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'BTSposLive.json')
 
 # Extended ML actions
 ACTIONS = [
@@ -277,10 +276,6 @@ def check_api_error():
 import sqlite3
 import os
 from typing import List, Dict
-# Construct the DB path dynamically
-_current_dir = os.path.dirname(os.path.abspath(__file__))
-_project_root = os.path.abspath(os.path.join(_current_dir, os.pardir, os.pardir))
-DB_PATH = os.path.join(_project_root, "instance", "users.db")
 
 
 
@@ -492,34 +487,34 @@ class TradingBotAsyncManager:
             await self.session.close()
             self.session = None
 
+    async def fetch_json(self, url: str, *, params=None, retries: int = 3, timeout: int = 10):
+        """Fetch JSON data with automatic retries and exponential backoff."""
+        await self.init_session()
+        delay = 1
+        for attempt in range(retries):
+            try:
+                async with self.session.get(url, params=params, timeout=timeout) as resp:
+                    resp.raise_for_status()
+                    return await resp.json()
+            except Exception as e:
+                if attempt == retries - 1:
+                    raise
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, 30)
+
     def fire_and_forget_order(self, url: str, headers: dict, body: dict):
-        """
-        Fire an HTTP POST in a subprocess to avoid blocking the main event loop.
-        """
-        asyncio.create_task(self._launch_in_subprocess(url, headers, body))
+        """Fire an HTTP POST asynchronously using this manager's aiohttp session."""
+        asyncio.create_task(self._send_order(url, headers, body))
 
-    async def _launch_in_subprocess(self, url: str, headers: dict, body: dict):
+    async def _send_order(self, url: str, headers: dict, body: dict):
+        """Send the HTTP POST without blocking the caller."""
+        await self.init_session()
         try:
-            body_str = json.dumps(body)
-            command = [
-                'python3', '-c', f"""
-import json, aiohttp, asyncio
-
-async def post_request(url, headers, body):
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(url, headers=headers, data=body) as resp:
+            async with self.session.post(url, headers=headers, json=body) as resp:
                 response_text = await resp.text()
-                print(f"Order status={{resp.status}}, response={{response_text}}")
+                print(f"Order status={resp.status}, response={response_text}")
         except Exception as e:
-            print(f"Error sending order: {{e}}")
-
-asyncio.run(post_request('{url}', {json.dumps(headers)}, '{body_str}'))
-"""
-            ]
-            subprocess.Popen(command)
-        except Exception as e:
-            print(f"[TradingBot] Subprocess launch error: {e}")
+            print(f"[TradingBot] Async order error: {e}")
 
 
 
@@ -2383,6 +2378,9 @@ class TraRyMainSuperRefined:
 
     async def run(self):
         try:
+            # Ensure aiohttp session is ready
+            await self.bot.async_manager.init_session()
+
             await asyncio.gather(
                 trade_stream(self.bot),
                 liquidation_stream(self.bot),
@@ -2396,6 +2394,7 @@ class TraRyMainSuperRefined:
             self.bot.save_state()
             self.logger.flush(force=True)
             self.bot.hist_mgr._persist()
+            await self.bot.async_manager.close_session()
 
 async def main():
     app = TraRyMainSuperRefined()
