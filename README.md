@@ -57,5 +57,14 @@ python3 TraRyTrade_SelfSwimm_V1.py
 You may need to tweak setVars (e.g. symbol, lot sizes, thresholds) for your market and risk profile.
 Out of the box it may not be profitable—use at your own risk! And in beagnn when model fresh empty it is much bader as later....
 
+## What's New
+
+This update introduces additional stability utilities and features:
+
+- **PositionManager** now exposes a `get_position_value()` helper and a `reset()`
+  method to quickly clear all state.
+- The machine learning model now includes live position metrics such as
+  `pos_abs_units`, `pos_value`, and `exposure_pct` for improved decision making.
+
 
 
