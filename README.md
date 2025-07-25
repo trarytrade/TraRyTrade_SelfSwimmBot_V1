@@ -65,6 +65,9 @@ This update introduces additional stability utilities and features:
   method to quickly clear all state.
 - The machine learning model now includes live position metrics such as
   `pos_abs_units`, `pos_value`, and `exposure_pct` for improved decision making.
+- WebSocket reconnections now use **exponential backoff** for better resilience.
+- A periodic **Binance health check** keeps the connection alive and logs
+  issues early.
 
 
 

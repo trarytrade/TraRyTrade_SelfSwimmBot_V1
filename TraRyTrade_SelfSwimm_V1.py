@@ -1350,11 +1350,14 @@ class SuperRefinedML:
 import traceback
 
 async def trade_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
+    """Consume the Binance trade stream with exponential backoff reconnects."""
     url = f"wss://fstream.binance.com/ws/{varmove.Coin.lower()}@trade"
+    backoff = 0.1
     while True:
         try:
             async with websockets.connect(url, ping_interval=3, ping_timeout=7) as ws:
                 main_bot.logger.log(f"[trade_stream] Connected to {SYMBOL} trade stream.")
+                backoff = 0.1
                 while True:
                     msg = await ws.recv()
                     data = json.loads(msg)
@@ -1367,8 +1370,11 @@ async def trade_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
                                 traceback.format_exc()
                             )
         except Exception as e:
-            main_bot.logger.log(f"[trade_stream] Connection error: {e}. Reconnecting in 0.1s.")
-            await asyncio.sleep(0.1)
+            main_bot.logger.log(
+                f"[trade_stream] Connection error: {e}. Reconnecting in {backoff:.1f}s."
+            )
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, 30.0)
 
 
 
@@ -1377,15 +1383,14 @@ async def trade_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
 # LIQUIDATION STREAM
 ###############################################################################
 async def liquidation_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
-    """
-    Monitors the forced liquidation stream. If a liquidation occurs,
-    treat it similarly to a trade with "liq_events=1".
-    """
+    """Listen for forced liquidations with exponential backoff reconnects."""
     url = f"wss://fstream.binance.com/ws/{varmove.Coin.lower()}@forceOrder"
+    backoff = 0.1
     while True:
         try:
             async with websockets.connect(url, ping_interval=3, ping_timeout=7) as ws:
                 main_bot.logger.log(f"[liquidation_stream] Connected to {SYMBOL} liquidation stream.")
+                backoff = 0.1
                 while True:
                     msg = await ws.recv()
                     data = json.loads(msg)
@@ -1395,14 +1400,17 @@ async def liquidation_stream(main_bot: "TraRyTrade_SelfSwimm_V1_SuperRefined"):
                         q = float(o.get("z", 0))
                         tms = float(o["T"]) / 1000.0
                         trade = {
-                            "timestamp": tms, "price": px, "qty": q, 
+                            "timestamp": tms, "price": px, "qty": q,
                             "wave_score": 0.0, "liq_events": 1,
                             "e": "trade", "s": SYMBOL, "T": int(tms * 1000)
                         }
                         main_bot.on_new_trade(trade)
         except Exception as e:
-            main_bot.logger.log(f"[liquidation_stream] Error: {e}. Reconnecting in 0.1s.")
-            await asyncio.sleep(0.1)
+            main_bot.logger.log(
+                f"[liquidation_stream] Error: {e}. Reconnecting in {backoff:.1f}s."
+            )
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, 30.0)
 
 ###############################################################################
 # REGISTRY SYNC
@@ -1779,6 +1787,15 @@ class TraRyTrade_SelfSwimm_V1_SuperRefined:
             f"avg_entry={self.posmgr.avg_entry_price:.6f}, "
             f"stop_loss={self.posmgr.stop_loss:.6f}"
         )
+
+    async def health_check(self) -> bool:
+        """Simple connectivity check against Binance Futures API."""
+        try:
+            await asyncio.to_thread(self.client.futures_ping)
+            return True
+        except Exception as e:
+            self.logger.log(f"[HealthCheck] Binance ping failed: {e}")
+            return False
 
 
 
@@ -2305,6 +2322,13 @@ class TraRyMainSuperRefined:
             await asyncio.sleep(3)
             self.logger.flush(force=True)
 
+    async def periodic_health_check(self):
+        while True:
+            ok = await self.bot.health_check()
+            if not ok:
+                self.logger.log("[MainApp] Health check failed")
+            await asyncio.sleep(60)
+
 
 
     async def run(self):
@@ -2313,7 +2337,8 @@ class TraRyMainSuperRefined:
                 trade_stream(self.bot),
                 liquidation_stream(self.bot),
                 self.periodic_binance_sync(),
-                self.periodic_log_flusher()  
+                self.periodic_log_flusher(),
+                self.periodic_health_check()
             )
         except KeyboardInterrupt:
             self.logger.log("[MainApp] KeyboardInterrupt received. Exiting...")
