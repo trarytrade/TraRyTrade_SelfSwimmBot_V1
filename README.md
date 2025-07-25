@@ -73,6 +73,7 @@ This update introduces additional stability utilities and features:
 - New `connect_with_backoff` helper centralizes WebSocket reconnection logic.
 - Liquidation events are buffered in `liq_events` with helper methods to query
   recent events.
+## License
 
-
+This project is released under the [MIT License](LICENSE).
 
