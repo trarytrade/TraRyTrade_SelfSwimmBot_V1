@@ -1,0 +1,7 @@
+aiohttp
+numpy
+pandas
+joblib
+scikit-learn
+websockets
+python-binance

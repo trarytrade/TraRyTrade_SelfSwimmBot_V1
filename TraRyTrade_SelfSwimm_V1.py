@@ -138,6 +138,14 @@ def compute_RSI(prices: pd.Series, period: int = 14) -> pd.Series:
     return rsi.reindex(prices.index).fillna(50)
 
 
+async def safe_sleep(delay: float):
+    """Sleep and ignore cancellations to allow graceful shutdown."""
+    try:
+        await asyncio.sleep(delay)
+    except asyncio.CancelledError:
+        pass
+
+
 
 ###############################################################################
 # ASYNC LOGGING FOR ML DECISIONS
@@ -2361,7 +2369,7 @@ class TraRyMainSuperRefined:
     async def periodic_log_flusher(self):
         # Flush logs every few seconds
         while True:
-            await asyncio.sleep(3)
+            await safe_sleep(3)
             self.logger.flush(force=True)
 
     async def periodic_health_check(self):
@@ -2369,7 +2377,7 @@ class TraRyMainSuperRefined:
             ok = await self.bot.health_check()
             if not ok:
                 self.logger.log("[MainApp] Health check failed")
-            await asyncio.sleep(60)
+            await safe_sleep(60)
 
 
 
