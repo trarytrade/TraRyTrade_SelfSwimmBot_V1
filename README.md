@@ -68,6 +68,11 @@ This update introduces additional stability utilities and features:
 - WebSocket reconnections now use **exponential backoff** for better resilience.
 - A periodic **Binance health check** keeps the connection alive and logs
   issues early.
+- Separate `on_new_liq` handler keeps liquidation data isolated from normal
+  trades for cleaner processing.
+- New `connect_with_backoff` helper centralizes WebSocket reconnection logic.
+- Liquidation events are buffered in `liq_events` with helper methods to query
+  recent events.
 
 
 
